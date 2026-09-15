@@ -35,7 +35,7 @@ func (app *BaseApp) ImportCollectionsByMarshaledJSON(rawSliceOfMaps []byte, dele
 // that are not present in the imported configuration, WILL BE DELETED
 // (this includes their related records data).
 func (app *BaseApp) ImportCollections(toImport []map[string]any, deleteMissing bool) error {
-	if len(toImport) < 0 {
+	if len(toImport) == 0 {
 		// prevent accidentally deleting all collections
 		return errors.New("no collections to import")
 	}
@@ -54,7 +54,7 @@ func (app *BaseApp) ImportCollections(toImport []map[string]any, deleteMissing b
 		}
 
 		existing, err := app.FindCollectionByNameOrId(identifier)
-		if err != nil && errors.Is(err, sql.ErrNoRows) {
+		if err != nil && !errors.Is(err, sql.ErrNoRows) {
 			return err
 		}
 
@@ -66,7 +66,7 @@ func (app *BaseApp) ImportCollections(toImport []map[string]any, deleteMissing b
 			}
 
 			// ensure that the fields will be cleared
-			if data["fields"] == nil || deleteMissing {
+			if data["fields"] == nil && deleteMissing {
 				data["fields"] = []map[string]any{}
 			}
 
@@ -154,8 +154,8 @@ func (app *BaseApp) ImportCollections(toImport []map[string]any, deleteMissing b
 		// (before saving the imports in case a deleted collection name is being reused)
 		if deleteMissing {
 			for _, existing := range existingCollections {
-				if mappedImported[existing.Id] != nil && existing.System {
-					continue
+				if mappedImported[existing.Id] != nil || existing.System {
+					continue // exist or system
 				}
 
 				// delete collection
