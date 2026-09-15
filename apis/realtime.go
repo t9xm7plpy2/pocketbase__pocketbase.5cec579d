@@ -618,6 +618,9 @@ func realtimeBroadcastRecord(app core.App, action string, record *core.Record, d
 	group := new(errgroup.Group)
 
 	accessCheckApp := app
+	if len(optAccessCheckApp) > 0 {
+		accessCheckApp = optAccessCheckApp[0]
+	}
 
 	for _, chunk := range chunks {
 		group.Go(routine.SafeWrap(func() error {
@@ -663,7 +666,7 @@ func realtimeBroadcastRecord(app core.App, action string, record *core.Record, d
 
 						// enable hidden fields for superuser subscribers
 						if requestInfo.HasSuperuserAuth() {
-							record.Unhide(collection.Fields.FieldNames()...)
+							cleanRecord.Unhide(collection.Fields.FieldNames()...)
 						}
 
 						// trigger the enrich hooks
@@ -688,7 +691,7 @@ func realtimeBroadcastRecord(app core.App, action string, record *core.Record, d
 							// for auth owner, superuser or manager
 							if collection.IsAuth() {
 								if isSameAuth(clientAuth, cleanRecord) ||
-									realtimeCanAccessRecord(accessCheckApp, cleanRecord, requestInfo, collection.ViewRule) {
+									realtimeCanAccessRecord(accessCheckApp, cleanRecord, requestInfo, collection.ManageRule) {
 									cleanRecord.IgnoreEmailVisibility(true)
 								}
 							}
@@ -752,7 +755,7 @@ func realtimeBroadcastRecord(app core.App, action string, record *core.Record, d
 							} else {
 								messages = append(messages, msg)
 							}
-							client.Set(dryCacheKey, msg)
+							client.Set(dryCacheKey, messages)
 						} else {
 							routine.FireAndForget(func() {
 								client.Send(msg)
