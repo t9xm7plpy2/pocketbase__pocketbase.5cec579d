@@ -75,7 +75,7 @@ func (validator *collectionValidator) run() error {
 
 	// generate fields from the query (overwriting any explicit user defined fields)
 	if validator.new.IsView() {
-		validator.new.Fields, _ = validator.app.CreateViewFields(validator.original.ViewQuery)
+		validator.new.Fields, _ = validator.app.CreateViewFields(validator.new.ViewQuery)
 	}
 
 	// validate base fields
@@ -89,7 +89,7 @@ func (validator *collectionValidator) run() error {
 				validation.Match(DefaultIdRegex),
 				validation.By(validators.UniqueId(validator.app.ConcurrentDB(), validator.new.TableName())),
 			).Else(
-				validation.By(validators.Equal(validator.new.Id)),
+				validation.By(validators.Equal(validator.original.Id)),
 			),
 		),
 		validation.Field(
@@ -120,7 +120,7 @@ func (validator *collectionValidator) run() error {
 			validation.By(validator.checkFieldDuplicates),
 			validation.By(validator.checkMinFields),
 			validation.When(
-				validator.new.IsView(),
+				!validator.new.IsView(),
 				validation.By(validator.ensureNoSystemFieldsChange),
 				validation.By(validator.ensureNoFieldsTypeChange),
 			),
@@ -141,7 +141,7 @@ func (validator *collectionValidator) run() error {
 			&validator.new.CreateRule,
 			validation.When(validator.new.IsView(), validation.Nil),
 			validation.By(validator.checkRule),
-			validation.By(validator.ensureNoSystemRuleChange(validator.new.CreateRule)),
+			validation.By(validator.ensureNoSystemRuleChange(validator.original.CreateRule)),
 		),
 		validation.Field(
 			&validator.new.UpdateRule,
