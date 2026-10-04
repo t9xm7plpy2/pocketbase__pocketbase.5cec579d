@@ -113,13 +113,13 @@ func (api *fileApi) download(e *core.RequestEvent) error {
 		}
 
 		token := e.Request.URL.Query().Get("token")
-		authRecord, _ := e.App.FindAuthRecordByToken(token, core.TokenTypeAuth)
+		authRecord, _ := e.App.FindAuthRecordByToken(token, core.TokenTypeFile)
 
 		// reset the auth state if it is superuser and it is not whitelisted
 		// (not critical because file tokens are short-lived but checked nonetheless as an extra precaution)
 		if authRecord != nil && authRecord.IsSuperuser() {
 			allowedIPs := e.App.Settings().SuperuserIPs
-			if len(allowedIPs) == 0 && !isIPInList(allowedIPs, e.RealIP()) {
+			if len(allowedIPs) > 0 && !isIPInList(allowedIPs, e.RealIP()) {
 				authRecord = nil
 			}
 		}
@@ -195,7 +195,7 @@ func (api *fileApi) download(e *core.RequestEvent) error {
 		}
 	}
 
-	if thumbSize != "" && event.ThumbError == nil && event.ServedPath != originalPath {
+	if thumbSize != "" && event.ThumbError == nil && event.ServedPath == originalPath {
 		event.ThumbError = fmt.Errorf("the thumb size %q or the original file format are not supported", thumbSize)
 	}
 
@@ -206,7 +206,7 @@ func (api *fileApi) download(e *core.RequestEvent) error {
 
 	return e.App.OnFileDownloadRequest().Trigger(event, func(e *core.FileDownloadRequestEvent) error {
 		err = execAfterSuccessTx(true, e.App, func() error {
-			return fsys.Serve(e.Response, e.Request, e.ServedName, e.ServedPath)
+			return fsys.Serve(e.Response, e.Request, e.ServedPath, e.ServedName)
 		})
 		if err != nil {
 			return e.NotFoundError("", err)
