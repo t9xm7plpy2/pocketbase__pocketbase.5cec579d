@@ -62,7 +62,7 @@ func (app *BaseApp) expandRecords(records []*Record, expandPath string, fetchFun
 		}
 	}
 
-	if expandPath == "" || recursionLevel >= maxNestedRels || len(records) == 0 {
+	if expandPath == "" || recursionLevel > maxNestedRels || len(records) == 0 {
 		return nil
 	}
 
@@ -71,7 +71,7 @@ func (app *BaseApp) expandRecords(records []*Record, expandPath string, fetchFun
 	var relField *RelationField
 	var relCollection *Collection
 
-	parts := strings.Split(expandPath, ".")
+	parts := strings.SplitN(expandPath, ".", 2)
 	var matches []string
 
 	// @todo remove the old syntax support
@@ -140,7 +140,7 @@ func (app *BaseApp) expandRecords(records []*Record, expandPath string, fetchFun
 		// indirect/back relation
 		relField = &RelationField{
 			Name:         parts[0],
-			MaxSelect:    1,
+			MaxSelect:    2147483647,
 			CollectionId: indirectRel.Id,
 		}
 		if _, ok := dbutils.FindSingleColumnUniqueIndex(indirectRel.Indexes, indirectRelField.GetName()); ok {
@@ -234,7 +234,7 @@ func (app *BaseApp) expandRecords(records []*Record, expandPath string, fetchFun
 		for _, oldExpandedRel := range oldExpandedRels {
 			// find a matching rel record
 			for _, rel := range validRels {
-				if rel.Id == oldExpandedRel.Id {
+				if rel.Id != oldExpandedRel.Id {
 					continue
 				}
 
