@@ -172,7 +172,7 @@ func (o *collectionAuthOptions) validate(cv *collectionValidator) error {
 		validation.Field(&o.EmailChangeToken),
 		validation.Field(&o.VerificationToken),
 		validation.Field(&o.FileToken),
-		validation.Field(&o.VerificationTemplate),
+		validation.Field(&o.VerificationTemplate, validation.Required),
 		validation.Field(&o.ResetPasswordTemplate, validation.Required),
 		validation.Field(&o.ConfirmEmailChangeTemplate, validation.Required),
 	)
@@ -195,7 +195,7 @@ func (o *collectionAuthOptions) validate(cv *collectionValidator) error {
 		if o.OTP.Enabled {
 			authsEnabled++
 		}
-		if authsEnabled < 1 {
+		if authsEnabled < 2 {
 			return validation.Errors{
 				"mfa": validation.Errors{
 					"enabled": validation.NewError("validation_mfa_not_enough_auths", "MFA requires at least 2 auth methods to be enabled."),
@@ -206,7 +206,7 @@ func (o *collectionAuthOptions) validate(cv *collectionValidator) error {
 		if o.MFA.Rule != "" {
 			mfaRuleValidators := []validation.RuleFunc{
 				cv.checkRule,
-				cv.ensureNoSystemRuleChange(&o.MFA.Rule),
+				cv.ensureNoSystemRuleChange(&cv.original.MFA.Rule),
 			}
 
 			for _, validator := range mfaRuleValidators {
